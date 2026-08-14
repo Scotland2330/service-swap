@@ -19,9 +19,9 @@ export default async function BrowseServicesPage({
   if (category && category !== "all") where.category = category;
   if (q) {
     where.OR = [
-      { title: { contains: q } },
-      { description: { contains: q } },
-      { business: { name: { contains: q } } },
+      { title: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+      { business: { name: { contains: q, mode: "insensitive" } } },
     ];
   }
 

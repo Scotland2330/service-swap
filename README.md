@@ -20,20 +20,22 @@ Think of it as a services marketplace (like Thumbtack) where you pay with your o
 ## Tech stack
 
 - **Next.js 15** (App Router, React 19, Server Actions) + **TypeScript**
-- **Prisma ORM** with **SQLite** — zero external services, runs anywhere
+- **Prisma ORM** with **PostgreSQL**
 - **Tailwind CSS**
 - **JWT session cookies** (`jose`) with **bcrypt**-hashed passwords
 - **Zod** for input validation
 
-Everything is self-contained: no external database, auth provider, or API keys required.
-
 ## Getting started
 
+You'll need a PostgreSQL database. The easiest free option is [Neon](https://neon.tech);
+a local Postgres works too.
+
 ```bash
-npm install          # installs deps and generates the Prisma client
-npm run db:push      # creates the SQLite database (prisma/dev.db)
-npm run db:seed      # loads demo businesses, services, and swaps
-npm run dev          # http://localhost:3000
+cp .env.example .env   # then edit DATABASE_URL and AUTH_SECRET
+npm install            # installs deps and generates the Prisma client
+npm run db:push        # creates the tables
+npm run db:seed        # loads demo businesses, services, and swaps
+npm run dev            # http://localhost:3000
 ```
 
 For a production build:
@@ -42,6 +44,11 @@ For a production build:
 npm run build
 npm run start
 ```
+
+## Deploying (get a public link)
+
+See **[DEPLOY.md](./DEPLOY.md)** for a step-by-step guide to hosting on Vercel +
+Neon (both free). The app creates its own database tables on first deploy.
 
 ### Demo accounts
 
@@ -100,4 +107,4 @@ src/
 ## Notes
 
 - `AUTH_SECRET` in `.env` is a development placeholder — set a strong secret in any real deployment.
-- SQLite is used for portability; the Prisma schema swaps to Postgres/MySQL with a one-line datasource change.
+- PostgreSQL is used so the app can run on serverless hosts. Any Postgres provider works; the connection string is the only thing that changes between environments.

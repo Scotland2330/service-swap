@@ -20,9 +20,9 @@ export default async function RequestsPage({
   if (category && category !== "all") where.category = category;
   if (q) {
     where.OR = [
-      { title: { contains: q } },
-      { description: { contains: q } },
-      { requester: { name: { contains: q } } },
+      { title: { contains: q, mode: "insensitive" } },
+      { description: { contains: q, mode: "insensitive" } },
+      { requester: { name: { contains: q, mode: "insensitive" } } },
     ];
   }
 
