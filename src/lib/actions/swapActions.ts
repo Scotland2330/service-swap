@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { serviceValue } from "@/lib/value";
+import { serviceValue, suggestCash } from "@/lib/value";
 
 export type SwapFormState = {
   error?: string;
@@ -17,8 +17,10 @@ const proposalSchema = z.object({
   requestedServiceId: z.string().min(1),
   offeredQty: z.coerce.number().positive("Quantity must be greater than 0"),
   requestedQty: z.coerce.number().positive("Quantity must be greater than 0"),
+  cashTopUp: z.coerce.number().min(0).default(0),
   message: z.string().optional(),
   terms: z.string().optional(),
+  requestId: z.string().optional(),
 });
 
 export async function createProposalAction(
@@ -33,8 +35,10 @@ export async function createProposalAction(
     requestedServiceId: formData.get("requestedServiceId"),
     offeredQty: formData.get("offeredQty"),
     requestedQty: formData.get("requestedQty"),
+    cashTopUp: formData.get("cashTopUp") || 0,
     message: formData.get("message") || undefined,
     terms: formData.get("terms") || undefined,
+    requestId: formData.get("requestId") || undefined,
   });
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
@@ -64,6 +68,28 @@ export async function createProposalAction(
   const offeredValue = serviceValue(offered, d.offeredQty);
   const requestedValue = serviceValue(requested, d.requestedQty);
 
+  // Cash flows from whichever side's service is worth less. We derive the
+  // payer server-side so it can't be spoofed, and only honor cash if there's
+  // a real gap to cover.
+  let cashTopUp = 0;
+  let cashPayer = "NONE";
+  if (d.cashTopUp > 0) {
+    const suggestion = suggestCash(offeredValue, requestedValue);
+    if (suggestion.payer !== "NONE") {
+      cashPayer = suggestion.payer;
+      cashTopUp = Math.round(d.cashTopUp * 100) / 100;
+    }
+  }
+
+  // Validate an optional linked request.
+  let requestId: string | null = null;
+  if (d.requestId) {
+    const req = await prisma.serviceRequest.findUnique({ where: { id: d.requestId } });
+    if (req && req.status === "OPEN" && req.requesterId === requested.businessId) {
+      requestId = req.id;
+    }
+  }
+
   const proposal = await prisma.swapProposal.create({
     data: {
       initiatorId: session.sub,
@@ -74,6 +100,9 @@ export async function createProposalAction(
       requestedServiceId: requested.id,
       requestedQty: d.requestedQty,
       requestedValue,
+      cashTopUp,
+      cashPayer,
+      requestId,
       message: d.message || null,
       terms: d.terms || null,
       status: "PENDING",
@@ -90,6 +119,7 @@ export async function createProposalAction(
 
   revalidatePath("/swaps");
   revalidatePath("/dashboard");
+  if (requestId) revalidatePath(`/requests/${requestId}`);
   redirect(`/swaps/${proposal.id}`);
 }
 
@@ -135,6 +165,16 @@ async function transition(proposalId: string, decision: Decision, note?: string)
       },
     },
   });
+
+  // Accepting an offer on a posted request marks that request fulfilled.
+  if (decision === "ACCEPTED" && proposal.requestId) {
+    await prisma.serviceRequest.update({
+      where: { id: proposal.requestId },
+      data: { status: "FULFILLED" },
+    });
+    revalidatePath(`/requests/${proposal.requestId}`);
+    revalidatePath("/requests");
+  }
 
   revalidatePath(`/swaps/${proposalId}`);
   revalidatePath("/swaps");

@@ -122,18 +122,21 @@ async function main() {
     },
   });
 
-  // A sample pending proposal: Ledgerly offers 10h bookkeeping for Brightleaf's logo package.
+  // A sample pending proposal with a partial trade + cash top-up:
+  // Ledgerly offers 20h bookkeeping ($1200) + $300 cash for Brightleaf's $1500 brand package.
   const p1 = await prisma.swapProposal.create({
     data: {
       initiatorId: ledgerly.id,
       recipientId: brightleaf.id,
       offeredServiceId: books.id,
-      offeredQty: 25,
-      offeredValue: 25 * 60,
+      offeredQty: 20,
+      offeredValue: 20 * 60,
       requestedServiceId: brand.id,
       requestedQty: 1,
       requestedValue: 1500,
-      message: "Love your work — we need a real brand. Happy to keep your books in return!",
+      cashTopUp: 300,
+      cashPayer: "INITIATOR",
+      message: "Love your work — we need a real brand. I'll cover most of it in bookkeeping and add $300 to make it even.",
       terms: "Brand package delivered within 3 weeks; bookkeeping starts next month.",
       status: "PENDING",
     },
@@ -144,7 +147,47 @@ async function main() {
       actorId: ledgerly.id,
       actorName: ledgerly.name,
       kind: "CREATED",
-      note: "Love your work — we need a real brand. Happy to keep your books in return!",
+      note: "Love your work — we need a real brand. I'll cover most of it in bookkeeping and add $300 to make it even.",
+    },
+  });
+
+  // A posted request (Thumbtack-style) with an incoming offer.
+  const siteRequest = await prisma.serviceRequest.create({
+    data: {
+      requesterId: cova.id,
+      title: "Need a simple marketing website for my practice",
+      description: "A clean 3-4 page site to bring in new clients. Home, services, about, contact. I can trade legal work and add a bit of cash if needed.",
+      category: "Web Development",
+      estimatedValue: 1500,
+      offering: "Contract review, incorporation help, or a little cash to top up",
+      status: "OPEN",
+    },
+  });
+
+  // Brightleaf offers to build it (16h design, $1200) in exchange for Covalent's
+  // incorporation service ($1200) — a balanced offer on the request.
+  const offer = await prisma.swapProposal.create({
+    data: {
+      initiatorId: brightleaf.id,
+      recipientId: cova.id,
+      offeredServiceId: design.id,
+      offeredQty: 16,
+      offeredValue: 16 * 75,
+      requestedServiceId: incorp.id,
+      requestedQty: 1,
+      requestedValue: 1200,
+      requestId: siteRequest.id,
+      message: "Happy to build your site! I'd love your incorporation package in return.",
+      status: "PENDING",
+    },
+  });
+  await prisma.proposalEvent.create({
+    data: {
+      proposalId: offer.id,
+      actorId: brightleaf.id,
+      actorName: brightleaf.name,
+      kind: "CREATED",
+      note: "Happy to build your site! I'd love your incorporation package in return.",
     },
   });
 

@@ -23,30 +23,60 @@ export function unitLabel(pricingModel: string, qty = 1): string {
   return qty === 1 ? "hour" : "hours";
 }
 
+export type CashPayer = "NONE" | "INITIATOR" | "RECIPIENT";
+
 export interface Balance {
-  offeredValue: number;
-  requestedValue: number;
-  difference: number; // requested - offered (positive => initiator receives more)
+  offeredValue: number; // service value the initiator gives
+  requestedValue: number; // service value the initiator receives
+  cashTopUp: number;
+  cashPayer: CashPayer;
+  offeredTotal: number; // service + cash the initiator gives
+  requestedTotal: number; // service + cash the initiator receives
+  difference: number; // requestedTotal - offeredTotal (positive => initiator receives more)
   absDifference: number;
-  ratio: number; // offered / requested
   fairnessPct: number; // 0-100, 100 = perfectly balanced
   status: "balanced" | "initiator-favored" | "recipient-favored";
   label: string;
 }
 
-/** Compare the two sides of a swap and describe how fair it is. */
-export function computeBalance(offeredValue: number, requestedValue: number): Balance {
-  const difference = round2(requestedValue - offeredValue);
+/**
+ * Who should add cash to even out a service-only trade, and how much.
+ * Cash always flows from the short side to the long side.
+ */
+export function suggestCash(
+  offeredValue: number,
+  requestedValue: number
+): { payer: CashPayer; amount: number } {
+  const diff = round2(requestedValue - offeredValue);
+  if (Math.abs(diff) < 0.01) return { payer: "NONE", amount: 0 };
+  // Initiator's service is worth less => initiator adds cash.
+  if (diff > 0) return { payer: "INITIATOR", amount: diff };
+  // Initiator's service is worth more => recipient adds cash.
+  return { payer: "RECIPIENT", amount: Math.abs(diff) };
+}
+
+/** Compare the two sides of a swap (including any cash) and describe how fair it is. */
+export function computeBalance(
+  offeredValue: number,
+  requestedValue: number,
+  cashTopUp = 0,
+  cashPayer: CashPayer = "NONE"
+): Balance {
+  const cash = cashPayer === "NONE" ? 0 : Math.max(0, cashTopUp || 0);
+
+  const offeredTotal = round2(offeredValue + (cashPayer === "INITIATOR" ? cash : 0));
+  const requestedTotal = round2(requestedValue + (cashPayer === "RECIPIENT" ? cash : 0));
+
+  const difference = round2(requestedTotal - offeredTotal);
   const absDifference = Math.abs(difference);
-  const maxSide = Math.max(offeredValue, requestedValue, 1);
+  const maxSide = Math.max(offeredTotal, requestedTotal, 1);
   const fairnessPct = Math.round((1 - absDifference / maxSide) * 100);
-  const ratio = requestedValue > 0 ? round2(offeredValue / requestedValue) : 0;
 
   // Within 5% (or $10) counts as balanced.
   const balanced = absDifference <= Math.max(10, maxSide * 0.05);
 
   let status: Balance["status"] = "balanced";
-  let label = "Balanced trade";
+  let label = cash > 0 ? "Balanced with cash" : "Balanced trade";
   if (!balanced) {
     if (difference > 0) {
       status = "recipient-favored";
@@ -60,9 +90,12 @@ export function computeBalance(offeredValue: number, requestedValue: number): Ba
   return {
     offeredValue: round2(offeredValue),
     requestedValue: round2(requestedValue),
+    cashTopUp: round2(cash),
+    cashPayer: cash > 0 ? cashPayer : "NONE",
+    offeredTotal,
+    requestedTotal,
     difference,
     absDifference,
-    ratio,
     fairnessPct: Math.max(0, Math.min(100, fairnessPct)),
     status,
     label,

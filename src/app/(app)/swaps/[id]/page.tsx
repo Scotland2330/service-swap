@@ -35,6 +35,7 @@ export default async function SwapDetailPage({
       initiator: true,
       recipient: true,
       events: { orderBy: { createdAt: "asc" } },
+      request: true,
     },
   });
   if (!swap) notFound();
@@ -44,8 +45,15 @@ export default async function SwapDetailPage({
   const isRecipient = swap.recipientId === me;
   if (!isInitiator && !isRecipient) redirect("/swaps");
 
-  const balance = computeBalance(swap.offeredValue, swap.requestedValue);
+  const balance = computeBalance(
+    swap.offeredValue,
+    swap.requestedValue,
+    swap.cashTopUp,
+    swap.cashPayer as "NONE" | "INITIATOR" | "RECIPIENT"
+  );
   const counterparty = isInitiator ? swap.recipient : swap.initiator;
+  const cashByInitiator = swap.cashPayer === "INITIATOR" && swap.cashTopUp > 0;
+  const cashByRecipient = swap.cashPayer === "RECIPIENT" && swap.cashTopUp > 0;
 
   const addMessage = addProposalMessageAction.bind(null, swap.id);
 
@@ -64,6 +72,14 @@ export default async function SwapDetailPage({
         <Link href={`/businesses/${counterparty.id}`} className="font-medium text-brand-700 hover:underline">
           {counterparty.name}
         </Link>
+        {swap.request && (
+          <>
+            {" · in response to request "}
+            <Link href={`/requests/${swap.request.id}`} className="font-medium text-brand-700 hover:underline">
+              “{swap.request.title}”
+            </Link>
+          </>
+        )}
       </p>
 
       {/* The trade */}
@@ -78,6 +94,7 @@ export default async function SwapDetailPage({
             qty={swap.offeredQty}
             unit={unitLabel(swap.offeredService.pricingModel, swap.offeredQty)}
             value={swap.offeredValue}
+            cash={cashByInitiator ? swap.cashTopUp : 0}
           />
           <div className="flex items-center">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-600">
@@ -93,6 +110,7 @@ export default async function SwapDetailPage({
             qty={swap.requestedQty}
             unit={unitLabel(swap.requestedService.pricingModel, swap.requestedQty)}
             value={swap.requestedValue}
+            cash={cashByRecipient ? swap.cashTopUp : 0}
           />
         </div>
 
@@ -100,7 +118,10 @@ export default async function SwapDetailPage({
         <div className="mt-6 rounded-lg bg-gray-50 p-4">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-gray-700">
-              {formatCurrency(swap.offeredValue)} for {formatCurrency(swap.requestedValue)}
+              {formatCurrency(balance.offeredTotal)} for {formatCurrency(balance.requestedTotal)}
+              {swap.cashTopUp > 0 && (
+                <span className="ml-1 font-normal text-gray-500">(incl. {formatCurrency(swap.cashTopUp)} cash)</span>
+              )}
             </span>
             <span className={`badge ${balance.status === "balanced" ? "bg-brand-100 text-brand-800" : "bg-amber-100 text-amber-800"}`}>
               {balance.fairnessPct}% balanced
@@ -198,6 +219,7 @@ function TradeSide({
   qty,
   unit,
   value,
+  cash = 0,
 }: {
   label: string;
   businessName: string;
@@ -207,6 +229,7 @@ function TradeSide({
   qty: number;
   unit: string;
   value: number;
+  cash?: number;
 }) {
   return (
     <div className="rounded-lg border border-gray-200 p-4">
@@ -222,6 +245,9 @@ function TradeSide({
         {qty} {unit}
       </p>
       <p className="mt-2 text-lg font-bold text-brand-700">{formatCurrency(value)}</p>
+      {cash > 0 && (
+        <p className="mt-1 text-sm font-medium text-gray-600">+ {formatCurrency(cash)} cash 💵</p>
+      )}
     </div>
   );
 }

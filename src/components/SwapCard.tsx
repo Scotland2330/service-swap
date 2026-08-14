@@ -9,6 +9,8 @@ export interface SwapCardData {
   offeredValue: number;
   requestedQty: number;
   requestedValue: number;
+  cashTopUp: number;
+  cashPayer: string;
   createdAt: Date;
   offeredService: { title: string; pricingModel: string };
   requestedService: { title: string; pricingModel: string };
@@ -76,6 +78,14 @@ export default function SwapCard({
           </p>
         </div>
       </div>
+
+      {swap.cashPayer !== "NONE" && swap.cashTopUp > 0 && (
+        <p className="mt-3 border-t border-gray-100 pt-3 text-center text-xs font-medium text-brand-700">
+          💵{" "}
+          {(swap.cashPayer === "INITIATOR") === iAmInitiator ? "You add" : `${counterparty.name} adds`}{" "}
+          {formatCurrency(swap.cashTopUp)} cash
+        </p>
+      )}
     </Link>
   );
 }

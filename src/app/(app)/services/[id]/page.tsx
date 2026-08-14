@@ -122,6 +122,7 @@ export default async function ServiceDetailPage({
             </p>
             <div className="mt-4">
               <ProposeSwapForm
+                counterpartyName={service.business.name}
                 myServices={myServices.map((s) => ({
                   id: s.id,
                   title: s.title,
@@ -129,14 +130,15 @@ export default async function ServiceDetailPage({
                   hourlyRate: s.hourlyRate,
                   fixedValue: s.fixedValue,
                 }))}
-                requested={{
-                  id: service.id,
-                  title: service.title,
-                  pricingModel: service.pricingModel,
-                  hourlyRate: service.hourlyRate,
-                  fixedValue: service.fixedValue,
-                  businessName: service.business.name,
-                }}
+                requestables={[
+                  {
+                    id: service.id,
+                    title: service.title,
+                    pricingModel: service.pricingModel,
+                    hourlyRate: service.hourlyRate,
+                    fixedValue: service.fixedValue,
+                  },
+                ]}
               />
             </div>
           </div>

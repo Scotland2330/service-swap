@@ -26,12 +26,12 @@ export default async function LandingPage() {
       body: "Publish what you offer and set its value — an hourly rate or a fixed project price.",
     },
     {
-      title: "Propose a swap",
-      body: "Find a service you need, offer yours in return, and our calculator keeps the trade fair.",
+      title: "Swap, or post a request",
+      body: "Offer your service for one you need — or post what you're looking for and let offers come to you.",
     },
     {
-      title: "Deliver & grow",
-      body: "Accept, agree on terms, do the work, and mark it complete — no cash required.",
+      title: "Trade + top up with cash",
+      body: "If the values don't quite match, add a little cash to balance it. Trade what you can, pay the rest.",
     },
   ];
 
@@ -47,12 +47,12 @@ export default async function LandingPage() {
               For bootstrapped small businesses
             </span>
             <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-gray-900 md:text-5xl">
-              Trade your skills instead of spending cash you don&apos;t have yet.
+              Like a services marketplace — but you trade skills instead of cash.
             </h1>
             <p className="mt-5 text-lg text-gray-600">
-              ServiceSwap is a marketplace where small businesses exchange
-              services of equal value. Give what you&apos;re great at, get what you
-              need, and keep your runway intact.
+              Find the help you need and pay with what you&apos;re great at. Swap
+              service-for-service, post a request and get offers, and when a trade
+              doesn&apos;t quite balance, top it up with a little cash.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/register" className="btn-primary px-6 py-3 text-base">
@@ -60,6 +60,9 @@ export default async function LandingPage() {
               </Link>
               <Link href="/services" className="btn-secondary px-6 py-3 text-base">
                 Browse services
+              </Link>
+              <Link href="/requests" className="btn-secondary px-6 py-3 text-base">
+                See open requests
               </Link>
             </div>
 
@@ -95,11 +98,12 @@ export default async function LandingPage() {
       <section className="bg-brand-700 text-white">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 md:grid-cols-2 md:items-center">
           <div>
-            <h2 className="text-3xl font-bold">Fair by design</h2>
+            <h2 className="text-3xl font-bold">Fair by design — and flexible</h2>
             <p className="mt-4 text-brand-100">
               Every service carries a value. When you propose a swap, ServiceSwap
-              compares both sides and shows you exactly how balanced the trade is —
-              so nobody feels short-changed.
+              compares both sides and shows exactly how balanced it is. If it&apos;s
+              a little uneven, add cash to close the gap — trade most of it, pay a
+              little to make it happen.
             </p>
             <Link href="/register" className="mt-6 inline-flex btn bg-white text-brand-700 hover:bg-brand-50">
               Start swapping
@@ -109,17 +113,21 @@ export default async function LandingPage() {
             <div className="flex items-center justify-between text-sm">
               <div>
                 <p className="text-gray-500">You give</p>
-                <p className="font-semibold">10 hrs web design</p>
+                <p className="font-semibold">8 hrs web design</p>
               </div>
               <SwapIcon className="h-6 w-6 text-brand-500" />
               <div className="text-right">
                 <p className="text-gray-500">You get</p>
-                <p className="font-semibold">5 hrs legal advice</p>
+                <p className="font-semibold">Logo &amp; brand kit</p>
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-between rounded-lg bg-brand-50 px-4 py-3 text-sm">
-              <span className="font-medium text-brand-800">{formatCurrency(750)} ≈ {formatCurrency(750)}</span>
-              <span className="badge bg-brand-600 text-white">Balanced trade</span>
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-dashed border-brand-200 px-4 py-2 text-sm">
+              <span className="text-gray-500">+ cash to balance</span>
+              <span className="font-semibold text-gray-800">{formatCurrency(150)} 💵</span>
+            </div>
+            <div className="mt-3 flex items-center justify-between rounded-lg bg-brand-50 px-4 py-3 text-sm">
+              <span className="font-medium text-brand-800">{formatCurrency(750)} = {formatCurrency(600)} + {formatCurrency(150)}</span>
+              <span className="badge bg-brand-600 text-white">Balanced with cash</span>
             </div>
           </div>
         </div>

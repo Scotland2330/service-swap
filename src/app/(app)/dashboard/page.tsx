@@ -52,6 +52,12 @@ export default async function DashboardPage({
     }),
   ]);
 
+  const myRequests = await prisma.serviceRequest.findMany({
+    where: { requesterId: me },
+    include: { _count: { select: { proposals: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+
   const countBy = (s: string) =>
     counts.find((c) => c.status === s)?._count ?? 0;
 
@@ -63,6 +69,7 @@ export default async function DashboardPage({
   const tabs = [
     { key: "overview", label: "Overview" },
     { key: "services", label: `My services (${services.length})` },
+    { key: "requests", label: `My requests (${myRequests.length})` },
   ];
 
   return (
@@ -79,7 +86,7 @@ export default async function DashboardPage({
           </div>
         </div>
         <div className="flex gap-2">
-          <Link href="/profile" className="btn-secondary">Edit profile</Link>
+          <Link href="/requests/new" className="btn-secondary">+ Post a request</Link>
           <Link href="/services/new" className="btn-primary">+ List a service</Link>
         </div>
       </div>
@@ -150,6 +157,33 @@ export default async function DashboardPage({
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : tab === "requests" ? (
+        <div className="mt-6">
+          {myRequests.length === 0 ? (
+            <EmptyState
+              title="No requests yet"
+              description="Post what you need and let other businesses send you offers."
+              action={<Link href="/requests/new" className="btn-primary">Post a request</Link>}
+            />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {myRequests.map((r) => (
+                <Link key={r.id} href={`/requests/${r.id}`} className="card p-5 transition hover:border-brand-300 hover:shadow-md">
+                  <div className="flex items-start justify-between">
+                    <span className="badge bg-amber-50 text-amber-800">{r.category}</span>
+                    <StatusBadge status={r.status === "FULFILLED" ? "COMPLETED" : r.status === "CLOSED" ? "DECLINED" : "PENDING"} />
+                  </div>
+                  <p className="mt-2 font-semibold text-gray-900">{r.title}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-gray-600">{r.description}</p>
+                  <p className="mt-3 border-t border-gray-100 pt-3 text-sm text-gray-500">
+                    {r._count.proposals} offer{r._count.proposals === 1 ? "" : "s"}
+                    {r.estimatedValue > 0 && <> · ~{formatCurrency(r.estimatedValue)}</>}
+                  </p>
+                </Link>
               ))}
             </div>
           )}

@@ -24,6 +24,7 @@ model Business {
   services       Service[]
   sentProposals     SwapProposal[] @relation("Initiator")
   receivedProposals SwapProposal[] @relation("Recipient")
+  requests       ServiceRequest[]
   messages       Message[]
 }
 
@@ -66,16 +67,42 @@ model SwapProposal {
   requestedQty       Float   @default(1)
   requestedValue     Float   @default(0)
 
+  // Cash added to balance a partial trade.
+  cashTopUp Float  @default(0)
+  cashPayer String @default("NONE") // NONE | INITIATOR | RECIPIENT
+
   message String?
   terms   String?
 
   // PENDING | ACCEPTED | DECLINED | CANCELLED | COMPLETED
   status  String   @default("PENDING")
 
+  // If this proposal was sent in response to a posted request.
+  requestId String?
+  request   ServiceRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   events   ProposalEvent[]
+}
+
+model ServiceRequest {
+  id             String   @id @default(cuid())
+  requesterId    String
+  requester      Business @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  title          String
+  description    String
+  category       String
+  estimatedValue Float    @default(0)
+  // What the requester offers in return, in plain words (optional).
+  offering       String?
+  // OPEN | FULFILLED | CLOSED
+  status         String   @default("OPEN")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  proposals SwapProposal[]
 }
 
 model ProposalEvent {

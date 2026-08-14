@@ -21,6 +21,7 @@ export default async function SiteHeader() {
           <Logo />
           <nav className="hidden items-center gap-1 md:flex">
             <NavLink href="/services">Browse services</NavLink>
+            <NavLink href="/requests">Requests</NavLink>
             {business && <NavLink href="/dashboard">Dashboard</NavLink>}
             {business && (
               <NavLink href="/swaps">
