@@ -1,0 +1,127 @@
+generator client {
+  provider      = "prisma-client-js"
+  // "native" for local dev; the rhel target is what Vercel's serverless runtime needs.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  tagline      String?
+  bio          String?
+  industry     String?
+  location     String?
+  website      String?
+  logoColor    String   @default("#33806c")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  services       Service[]
+  sentProposals     SwapProposal[] @relation("Initiator")
+  receivedProposals SwapProposal[] @relation("Recipient")
+  requests       ServiceRequest[]
+  messages       Message[]
+}
+
+model Service {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  category     String
+  // Pricing model: HOURLY uses hourlyRate; FIXED uses fixedValue
+  pricingModel String   @default("HOURLY") // HOURLY | FIXED
+  hourlyRate   Float    @default(0)
+  fixedValue   Float    @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  offeredIn   SwapProposal[] @relation("OfferedService")
+  requestedIn SwapProposal[] @relation("RequestedService")
+}
+
+model SwapProposal {
+  id          String   @id @default(cuid())
+
+  initiatorId String
+  initiator   Business @relation("Initiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   Business @relation("Recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  // The service the initiator offers
+  offeredServiceId String
+  offeredService   Service @relation("OfferedService", fields: [offeredServiceId], references: [id])
+  offeredQty       Float   @default(1) // hours or projects
+  offeredValue     Float   @default(0) // computed snapshot
+
+  // The service the initiator wants in return
+  requestedServiceId String
+  requestedService   Service @relation("RequestedService", fields: [requestedServiceId], references: [id])
+  requestedQty       Float   @default(1)
+  requestedValue     Float   @default(0)
+
+  // Cash added to balance a partial trade.
+  cashTopUp Float  @default(0)
+  cashPayer String @default("NONE") // NONE | INITIATOR | RECIPIENT
+
+  message String?
+  terms   String?
+
+  // PENDING | ACCEPTED | DECLINED | CANCELLED | COMPLETED
+  status  String   @default("PENDING")
+
+  // If this proposal was sent in response to a posted request.
+  requestId String?
+  request   ServiceRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events   ProposalEvent[]
+}
+
+model ServiceRequest {
+  id             String   @id @default(cuid())
+  requesterId    String
+  requester      Business @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  title          String
+  description    String
+  category       String
+  estimatedValue Float    @default(0)
+  // What the requester offers in return, in plain words (optional).
+  offering       String?
+  // OPEN | FULFILLED | CLOSED
+  status         String   @default("OPEN")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  proposals SwapProposal[]
+}
+
+model ProposalEvent {
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   SwapProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  actorId    String
+  actorName  String
+  kind       String   // CREATED | ACCEPTED | DECLINED | CANCELLED | COMPLETED | MESSAGE
+  note       String?
+  createdAt  DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  body       String
+  createdAt  DateTime @default(now())
+}
